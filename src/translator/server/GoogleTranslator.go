@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"io/ioutil"
+	"strings"
 )
 
 type TranslationResult struct {
@@ -19,8 +20,15 @@ http.Get("http://translate.google.com/translate_a/t?q=drag%20if%20you%20want%20t
 
 		if err == nil {
 			fmt.Printf("Response: %s\n", contents)
+			fmt.Println(contents[0])
+//			parseTranslation(contents)
 		}
 	}
+}
+
+func parseTranslation(result string) {
+	spl := strings.Split(result, "]")
+	fmt.Println(spl)
 }
 
 func main() {
