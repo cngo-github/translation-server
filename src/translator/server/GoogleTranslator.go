@@ -1,5 +1,5 @@
-//package GoogleTranslator
-package main
+package googleTranslator
+//package main
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ type TranslateJob struct {
         Url, Srctxt, Srclang, Tgttxt, Tgtlang string
 }
 
-func Translate(request TranslateJob) {
+func Translate(request TranslateJob, retChannel net.Conn) {
 	//Contact the server.
 	resp, err := http.Get(request.Url)
 
@@ -71,6 +71,8 @@ func Translate(request TranslateJob) {
 
 	request.Tgttxt = arr[0].(string)
 	request.Srclang = json[2].(string)
+
+	io.Copy(request.Tgttxt, c)
 }
 
 func sanitizeReturn(result []byte, iterations int) []byte {
