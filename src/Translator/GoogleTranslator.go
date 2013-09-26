@@ -1,5 +1,4 @@
-package googleTranslator
-//package main
+package Translator
 
 import (
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"time"
 	"io"
 	"net"
+	"log"
 )
 
 type TranslateError struct {
@@ -22,34 +22,61 @@ func (e *TranslateError) Error() string {
 }
 
 type TranslateJob struct {
-        Url, Srctxt, Srclang, Tgttxt, Tgtlang string
+	Url, Srctxt, Srclang, Tgttxt, Tgtlang string
+	Kill bool
 }
 
-func Translate(request TranslateJob, retChannel net.Conn) {
+func HandleRequest(conn net.Conn) {
+	for {
+		var j TranslateJob
+		dec := json.NewDecoder(conn)
+		err := dec.Decode(&j)
+
+		if err != nil {
+			log.Println("Problem converted the JSON.", err)
+			conn.Close()
+			return
+		}
+
+		if j.Kill == true {
+			conn.Close()
+			return
+		}
+
+		Translate(&j)
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		io.WriteString(conn, j.Tgttxt)
+	}
+
+}
+
+func Translate(request *TranslateJob) error {
 	//Contact the server.
 	resp, err := http.Get(request.Url)
 
 	if err != nil {
-		//Log error
-		fmt.Println(err)
-		return
+		log.Println("Unable to call translation service.", err)
+		return err
 	}
 
+	//Read server's response
 	contents, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		//log error
-		fmt.Println(err)
-		return
+		log.Println("Unable to read the server's response.", err)
+		return err
 	}
 
-	//Parse returned JSON
 	var f interface{}
 	err = json.Unmarshal(sanitizeReturn(contents, 3), &f)
 
 	if err != nil {
-		//log error
-		return
+		log.Println("Unable to parse the translation.", err)
+		return err
 	}
 
 	//Extract the translated text
@@ -61,23 +88,15 @@ func Translate(request TranslateJob, retChannel net.Conn) {
 		s, ok := arr[0].([]interface{})
 
 		if !ok {
-			//log error
+			log.Println("Error while reading the JSON.")
 			return
 		}
 
 		arr = s
 	}
 
-	fmt.Println("Text: ", arr[0])
-	fmt.Println("Language: ", json[2])
-
 	request.Tgttxt = arr[0].(string)
 	request.Srclang = json[2].(string)
-
-	io.WriteString(retChannel, request.Tgttxt)
-	retChannel.Close()
-//	retChannel.Write(string(request.Tgttxt))
-//	io.Copy(io.Write(string(request.Tgttxt)), retChannel)
 }
 
 func sanitizeReturn(result []byte, iterations int) []byte {
@@ -89,13 +108,6 @@ func sanitizeReturn(result []byte, iterations int) []byte {
 	str = strings.Replace(str, ",,", ",0,", -1)
 	return []byte(str)
 }
-
-//func main() {
-//	url := 
-//"http://translate.google.com/translate_a/t?q=drag%20if%20you%20want%20to%20work%20on%20this%20all%20night%20ill%20drink%20some%20coffee%20its%20no%20prob&client=t&text=&sl=auto&tl=fr"
-//	job := TranslateJob{url, "", "", "", ""}
-//	Translate(job)
-//}
 
 func ToGoString(c []byte) string {
 	n := -1
