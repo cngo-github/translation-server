@@ -1,25 +1,26 @@
 package Translator
 
 import (
-	"fmt"
+//	"fmt"
 	"net/http"
 	"io/ioutil"
 	"strings"
 	"encoding/json"
-	"time"
+//	"time"
 	"io"
 	"net"
 	"log"
+	"net/url"
 )
 
-type TranslateError struct {
-	When time.Time
-	Message string
-}
+//type TranslateError struct {
+//	When time.Time
+//	Message string
+//}
 
-func (e *TranslateError) Error() string {
-	return fmt.Sprintf("Error: %v, %s", e.When, e.Message)
-}
+//func (e *TranslateError) Error() string {
+//	return fmt.Sprintf("Error: %v, %s", e.When, e.Message)
+//}
 
 type TranslateJob struct {
 	Url, Srctxt, Srclang, Tgttxt, Tgtlang string
@@ -42,6 +43,19 @@ func HandleRequest(conn net.Conn) {
 			conn.Close()
 			return
 		}
+
+		//Encodes the message
+		v := url.Values{}
+		v.Set("q", j.Srctxt)
+		v.Add("client", "t")
+		v.Add("text", "")
+		v.Add("sl", j.Srclang)
+		v.Add("tl", j.Tgtlang)
+
+		//Google's translation address
+		s := "http://translate.google.com/translate_a/t?"
+		fmt.Println("Encode", s + v.Encode())
+		j.Url = s + v.Encode()
 
 		Translate(&j)
 
@@ -89,7 +103,7 @@ func Translate(request *TranslateJob) error {
 
 		if !ok {
 			log.Println("Error while reading the JSON.")
-			return
+			return nil
 		}
 
 		arr = s
@@ -97,6 +111,8 @@ func Translate(request *TranslateJob) error {
 
 	request.Tgttxt = arr[0].(string)
 	request.Srclang = json[2].(string)
+
+	return nil
 }
 
 func sanitizeReturn(result []byte, iterations int) []byte {

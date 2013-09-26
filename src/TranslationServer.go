@@ -4,7 +4,6 @@ import (
 	"log"
 	"net"
 	"./Translator"
-	"fmt"
 )
 
 func main() {
@@ -23,6 +22,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		go googleTranslator.HandleRequest(conn)
+		go Translator.HandleRequest(conn)
 	}
 }
