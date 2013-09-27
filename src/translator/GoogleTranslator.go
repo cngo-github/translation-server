@@ -1,30 +1,18 @@
 package Translator
 
 import (
-//	"fmt"
 	"net/http"
 	"io/ioutil"
 	"strings"
 	"encoding/json"
-//	"time"
-	"io"
 	"net"
 	"log"
 	"net/url"
 )
 
-//type TranslateError struct {
-//	When time.Time
-//	Message string
-//}
-
-//func (e *TranslateError) Error() string {
-//	return fmt.Sprintf("Error: %v, %s", e.When, e.Message)
-//}
-
 type TranslateJob struct {
-	Url, Srctxt, Srclang, Tgttxt, Tgtlang string
-	Kill bool
+	Url, Srctxt, Srclang, Tgttxt, Tgtlang, Echotxt string
+	Echo, Kill bool
 }
 
 func HandleRequest(conn net.Conn) {
@@ -34,7 +22,7 @@ func HandleRequest(conn net.Conn) {
 		err := dec.Decode(&j)
 
 		if err != nil {
-			log.Println("Problem converted the JSON.", err)
+			log.Println(err)
 			conn.Close()
 			return
 		}
@@ -54,26 +42,47 @@ func HandleRequest(conn net.Conn) {
 
 		//Google's translation address
 		s := "http://translate.google.com/translate_a/t?"
-		fmt.Println("Encode", s + v.Encode())
 		j.Url = s + v.Encode()
 
-		Translate(&j)
+		err = Translate(&j, false)
 
 		if err != nil {
 			log.Println(err)
 		}
 
-		io.WriteString(conn, j.Tgttxt)
+		//"Echoes" the translation if desired.
+		if j.Echo == true {
+			v := url.Values{}
+			v.Set("q", j.Tgttxt)
+			v.Add("client", "t")
+			v.Add("text", "")
+			v.Add("sl", j.Tgtlang)
+			v.Add("tl", j.Srclang)
+
+			j.Url = s + v.Encode()
+
+			err = Translate(&j, true)
+
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		enc := json.NewEncoder(conn)
+		err = enc.Encode(j)
+
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 }
 
-func Translate(request *TranslateJob) error {
+func Translate(request *TranslateJob, echo bool) error {
 	//Contact the server.
 	resp, err := http.Get(request.Url)
 
 	if err != nil {
-		log.Println("Unable to call translation service.", err)
 		return err
 	}
 
@@ -81,7 +90,6 @@ func Translate(request *TranslateJob) error {
 	contents, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Println("Unable to read the server's response.", err)
 		return err
 	}
 
@@ -89,7 +97,6 @@ func Translate(request *TranslateJob) error {
 	err = json.Unmarshal(sanitizeReturn(contents, 3), &f)
 
 	if err != nil {
-		log.Println("Unable to parse the translation.", err)
 		return err
 	}
 
@@ -102,11 +109,15 @@ func Translate(request *TranslateJob) error {
 		s, ok := arr[0].([]interface{})
 
 		if !ok {
-			log.Println("Error while reading the JSON.")
 			return nil
 		}
 
 		arr = s
+	}
+
+	if echo == true {
+		request.Echotxt = arr[0].(string)
+		return nil
 	}
 
 	request.Tgttxt = arr[0].(string)
@@ -120,20 +131,6 @@ func sanitizeReturn(result []byte, iterations int) []byte {
 		result = sanitizeReturn(result, iterations - 1)
 	}
 
-	str := ToGoString(result)
-	str = strings.Replace(str, ",,", ",0,", -1)
+	str := strings.Replace(string(result), ",,", ",0,", -1)
 	return []byte(str)
-}
-
-func ToGoString(c []byte) string {
-	n := -1
-
-	for i, b := range c {
-		if b == 0 {
-			break
-		}
-		n = i
-	}
-
-	return string(c[:n+1])
 }

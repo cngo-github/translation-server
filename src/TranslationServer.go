@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"net"
-	"./Translator"
+	"./translator"
 )
 
 func main() {
