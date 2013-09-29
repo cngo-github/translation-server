@@ -59,8 +59,8 @@ class Translator:
 				xchat.command("say " + result["Tgttxt"])
 			elif result["Srctxt"] != result["Tgttxt"]:
 				context = xchat.find_context(channel=result["Channel"])
-				str = result["Tgttxt"].encode("utf-8")
-				context.emit_print("Channel Message", "[tr-%s]" %(result["User"]), str)
+				str = result["Tgttxt"]
+				context.emit_print("Channel Message", "_[%s]" %(result["User"]), str)
 				
 			ACTIVE_JOBS -= 1
 			
@@ -146,7 +146,7 @@ def translateIncoming(word, word_eol, userdata):
 	chanKey = channel + " " + channel
 	xchat.prnt("translating start")
 
-	if (key in WATCHLIST or chanKey in WATCHLIST) and not user.startswith("[tr-"):
+	if (key in WATCHLIST or chanKey in WATCHLIST) and not user.startswith("_["):
 		xchat.prnt("translating")
 		addTranslationJob(word_eol[1], DEFAULT_LANG, channel, user)
 
@@ -203,14 +203,26 @@ def printWatchList(word, word_eol, userdata):
 	return xchat.EAT_ALL
 xchat.hook_command("LSUSERS", printWatchList, help = "/LSUSERS - prints out all users on the watch list for automatic translations to the screen locally.")
 
-def reinitialize(word, word_eol, userdata):
+def initialize(word, word_eol, userdata):
 	global CONN
 	global ACTIVE_JOBS
+	global WATCHLIST
+	global TIMEOUT_HOOK
 
-	CONN.close()
+	if TIMEOUT_HOOK is not None:
+		xchat.unhook(TIMEOUT_HOOK)
+		TIMEOUT_HOOK = None
+
+	if CONN is not None:
+		CONN.close()
+		CONN = None
+
 	ACTIVE_JOBS = 0
+	WATCHLIST = {}
+
+	xchat.prnt("Translator reinitialized")
 	return xchat.EAT_ALL
-xchat.hook_command("TRINIT", printWatchList, help = "/LSUSERS - prints out all users on the watch list for automatic translations to the screen locally.")
+xchat.hook_command("TRINIT", initialize, help = "/TRINIT - reinitializes the plugin.")
 
 def unload_plugin(userdata):
 	global TIMEOUT_HOOK

@@ -7,8 +7,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
-	"fmt"
+//	"fmt"
+	"bytes"
+	"code.google.com/p/go-charset/charset"
 )
+import _  "code.google.com/p/go-charset/data"
 
 type TranslateJob struct {
 	Srctxt, Srclang, Tgttxt, Tgtlang, Echotxt, Channel, User string
@@ -36,7 +39,6 @@ func HandleRequest(request TranslateJob, queue chan TranslateJob) {
 		return
 	}
 
-	fmt.Println(request.Tgttxt)
 	log.Println(request.Tgttxt)
 
 	if request.Srctxt == request.Tgttxt {
@@ -86,14 +88,11 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 		return err
 	}
 
-//	fmt.Println(contents)
-	fmt.Printf("%s", http.Get(url))
+	contents, err = iso885915toUtf8(contents)
 
 	var f interface{}
 	err = json.Unmarshal(sanitizeReturn(contents, 3), &f)
 
-//	fmt.Println(sanitizeReturn(contents, 3))
-//	fmt.Println(f)
 	if err != nil {
 		return err
 	}
@@ -131,4 +130,20 @@ func sanitizeReturn(result []byte, iterations int) []byte {
 
 	str := strings.Replace(string(result), ",,", ",0,", -1)
 	return []byte(str)
+}
+
+func iso885915toUtf8(arr []byte) ([]byte, error) {
+	r, err := charset.NewReader("ISO-8859-15", bytes.NewReader(arr))
+
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := ioutil.ReadAll(r)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
