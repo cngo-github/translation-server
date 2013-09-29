@@ -212,8 +212,6 @@ def addTranslationJob(text, targetLang, channel, user, outgoing = False):
 	global TIMER
 	global ACTIVE_JOBS
 
-	xchat.prnt(str(ACTIVE_JOBS))
-
 	ACTIVE_JOBS += 1
 	Translator.translate(channel, user, text, targetLang, outgoing)
 
@@ -274,7 +272,7 @@ def translateAndSay(word, word_eol, userdata):
 xchat.hook_command("TRSEND", translateAndSay, help="/TRSEND <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 
 def translate(word, word_eol, userdata):
-	addTranslationJob(word_eol[2], word[1], userdata)
+	addTranslationJob(word_eol[2], word[1], xchat.get_info("channel"), word[0].lower())
 	return xchat.EAT_ALL
 xchat.hook_command("TR", translate, help="/TR <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 

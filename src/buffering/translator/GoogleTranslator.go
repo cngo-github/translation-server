@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"bytes"
 	"code.google.com/p/go-charset/charset"
+//	"fmt"
 )
 import _  "code.google.com/p/go-charset/data"
 
@@ -87,7 +88,8 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 		return err
 	}
 
-	contents, err = iso885915toUtf8(contents)
+//	fmt.Println(contents)
+	contents, err = iso885915ToUTF8(contents)
 
 	var f interface{}
 	err = json.Unmarshal(sanitizeReturn(contents, 3), &f)
@@ -131,7 +133,7 @@ func sanitizeReturn(result []byte, iterations int) []byte {
 	return []byte(str)
 }
 
-func iso885915toUtf8(arr []byte) ([]byte, error) {
+func iso885915ToUTF8(arr []byte) ([]byte, error) {
 	r, err := charset.NewReader("ISO-8859-15", bytes.NewReader(arr))
 
 	if err != nil {
@@ -145,4 +147,32 @@ func iso885915toUtf8(arr []byte) ([]byte, error) {
 	}
 
 	return result, nil
+}
+
+
+func iso88591ToUTF8(input []byte) []byte {
+	// - ISO-8859-1 bytes match Unicode code points
+	// - All runes <128 correspond to ASCII, same as in UTF-8
+	// - All runes >128 in ISO-8859-1 encode as 2 bytes in UTF-8
+	res := make([]byte, len(input)*2)
+
+	var j int
+	for _, b := range input {
+		if b <= 128 {
+			res[j] = b
+			j += 1
+		} else {
+			if b >= 192 {
+				res[j] = 195
+				res[j+1] = b - 64
+			} else {
+				res[j] = 194
+				res[j+1] = b
+			}
+
+			j += 2
+		}
+	}
+
+	return res[:j]
 }
