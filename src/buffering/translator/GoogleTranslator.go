@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
-//	"fmt"
 	"bytes"
 	"code.google.com/p/go-charset/charset"
 )
