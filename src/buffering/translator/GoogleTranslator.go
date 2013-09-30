@@ -7,12 +7,22 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
-	"bytes"
-	"code.google.com/p/go-charset/charset"
-	"fmt"
-	"sjisconv"
-	"unicode/utf16"
-	"unicode/utf8"
+//	"bytes"
+//	"code.google.com/p/go-charset/charset"
+//	"fmt"
+//	"sjisconv"
+//	"unicode/utf16"
+//	"unicode/utf8"
+//	"io"
+//	"os"
+
+	"code.google.com/p/go.text/encoding/charmap"
+	"code.google.com/p/go.text/encoding/japanese"
+	"code.google.com/p/go.text/encoding/korean"
+	"code.google.com/p/go.text/encoding/simplifiedchinese"
+	"code.google.com/p/go.text/encoding/traditionalchinese"
+//	"code.google.com/p/go.text/encoding/unicode"
+	"code.google.com/p/go.text/transform"
 )
 import _  "code.google.com/p/go-charset/data"
 
@@ -84,29 +94,40 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 		return err
 	}
 
-	//Read server's response
-	contents, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(contents)
+	var tr (*transform.Reader)
 
 	switch resp.Header.Get("Content-Language") {
+		case "ar":
+			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", GBK -> UTF-8.")
+			tr = transform.NewReader(resp.Body, charmap.ISO8859_6.NewDecoder())
 		case "ja":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ".  Using ShiftJIS -> UTF-8")
-			contents = shiftJISToUTF8(contents)
+			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", ShiftJIS -> UTF-8")
+			tr = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
 		case "en":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ".  Doing no conversions.")
-			contents = iso88591ToUTF8(contents)
-//		case "zh-TW", "zh-CH":
-//			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ".  Using BIG-5 -> UTF-8.")
-//			contents, err = big5ToUTF8(contents)
+			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", no conversions.")
+		case "ko":
+			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", EUCKR -> UTF-8.")
+			tr = transform.NewReader(resp.Body, korean.EUCKR.NewDecoder())
+		case "ru", "bg", "uk":
+			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", EUCKR -> KOI8R.")
+			tr = transform.NewReader(resp.Body, charmap.KOI8R.NewDecoder())
+		case "zh-CN":
+			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", GBK -> UTF-8.")
+			tr = transform.NewReader(resp.Body, simplifiedchinese.GBK.NewDecoder())
+		case "zh-TW", "th":
+			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Big5 -> UTF-8.")
+			tr = transform.NewReader(resp.Body, traditionalchinese.Big5.NewDecoder())
 		default:
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ".  Using ISO-8859-15 -> UTF-8")
-			contents, err = iso885915ToUTF8(contents)
+			tr = transform.NewReader(resp.Body, charmap.Windows1252.NewDecoder())
 	}
+
+	if tr == nil {
+		log.Println("Failed to convert the JSON")
+		return nil
+	}
+
+	contents, err := ioutil.ReadAll(tr)
 
 //	fmt.Printf("%s", resp)
 //	contents, err = iso885915ToUTF8(contents)
@@ -157,79 +178,4 @@ func sanitizeReturn(result []byte, iterations int) []byte {
 
 	str := strings.Replace(string(result), ",,", ",0,", -1)
 	return []byte(str)
-}
-
-func iso885915ToUTF8(arr []byte) ([]byte, error) {
-	r, err := charset.NewReader("ISO-8859-15", bytes.NewReader(arr))
-
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := ioutil.ReadAll(r)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func iso88591ToUTF8(input []byte) []byte {
-	// - ISO-8859-1 bytes match Unicode code points
-	// - All runes <128 correspond to ASCII, same as in UTF-8
-	// - All runes >128 in ISO-8859-1 encode as 2 bytes in UTF-8
-	res := make([]byte, len(input)*2)
-
-	var j int
-	for _, b := range input {
-		if b <= 128 {
-			res[j] = b
-			j += 1
-		} else {
-			if b >= 192 {
-				res[j] = 195
-				res[j+1] = b - 64
-			} else {
-				res[j] = 194
-				res[j+1] = b
-			}
-
-			j += 2
-		}
-	}
-
-	return res[:j]
-}
-
-func big5ToUTF8(arr []byte) ([]byte, error) {
-	r, err := charset.NewReader("BIG5", bytes.NewReader(arr))
-
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := ioutil.ReadAll(r)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-
-func shiftJISToUTF8(input []byte) []byte {
-	var strBuf string = ""
-
-	Utf16str := sjisconv.SjistoUtf16(input)
-	runes  := utf16.Decode(Utf16str)
-	buf  := make([]byte, 6)
-
-	for i := 0; i < len(runes); i++ {
-		N := utf8.EncodeRune(buf, runes[i])
-		strBuf += string(buf[0:N])
-	}
-
-	return []byte(strBuf)
 }
