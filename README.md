@@ -1,7 +1,7 @@
 Translation Server
 ==================
 
-This is a small program, written in Go, that communicates with translate.google.com in order to carry out translations of text between various languages.  It was built for the specific purpose of working with irc scripts to incorporate translation capabilities into an irc client.  For more details on how to talk to the program with a script or irc plugin, please go to the section titled "/<some title/>".
+This is a small program, written in Go, that communicates with translate.google.com in order to carry out translations of text between various languages.  It was built for the specific purpose of working with irc scripts to incorporate translation capabilities into an irc client.  For more details on how to talk to the program with a script or irc plugin, please go to the section titled {some title}.
 
 This program comes in two versions.  The no-queue version does not keep finished translation jobs in a queue, hence the name, opting to just send it back to the client immediately.  This version should be used for clients that can accept the finished jobs as soon as they are done.  The queue version keeps the finished jobs in a queue, awaiting the client to request them.  This is for clients that are unable to accept the jobs as soon as they are finished (not threaded).
 
@@ -34,7 +34,8 @@ IRC Script
 ==========
 This program comes with an IRC plugin for XChat/Hexchat.  This plugin was made using Python 3.0.  If your client does not support Python 3.0, modifications will be needed to make the script operate correctly.  The commands for the script are as follows:
 
-/ADDTR <user_nick> - Adds <user_nick> to the watch list for automatic translations.
+/ADDTR {user_nick} - Adds {user_nick} to the watch list for automatic translations.
+
 /RMTR <user_nick> - Removes <user_nick> from the watch list for automatic translations.
 /ADDCHAN - Adds the current channel to the watch list.
 /TRSEND <dest_lang> <text> - translates the <text> into the <dest_lang> language and sends the translation to the current channel.
