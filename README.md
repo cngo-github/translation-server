@@ -22,13 +22,13 @@ Supported Languages/Encoding
 ============================
 All languages supported by translate.googole.com are supported.  However, if the encoding used for them is incorrect, you will see gibberish.
 
-ISO-8859-6: arabic (ar)
-ShiftJIS: japanese (ja)
-EUCKR: korean (ko)
-Windows 1251: russian (ru), bulgarian (bu), ukrainian (uk)
-GBK: simplified chinese (zh-CN)
-Big5: traditional chinese (zh-TW), thai (th)
-Windows 1252: default
+- ISO-8859-6: arabic (ar)
+- ShiftJIS: japanese (ja)
+- EUCKR: korean (ko)
+- Windows 1251: russian (ru), bulgarian (bu), ukrainian (uk)
+- GBK: simplified chinese (zh-CN)
+- Big5: traditional chinese (zh-TW), thai (th)
+- Windows 1252: default
 
 IRC Script
 ==========
