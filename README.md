@@ -5,13 +5,31 @@ This is a small program, written in Go, that communicates with translate.google.
 
 This program comes in two versions.  The no-queue version does not keep finished translation jobs in a queue, hence the name, opting to just send it back to the client immediately.  This version should be used for clients that can accept the finished jobs as soon as they are done.  The queue version keeps the finished jobs in a queue, awaiting the client to request them.  This is for clients that are unable to accept the jobs as soon as they are finished (not threaded).
 
+
+Notes
+=====
+- All translation jobs are run their own goroutine that is created for that job.  There is not cap on this on how many goroutines to make in this program.  Be mindful of the number of requests to send to this program and the load it will have on your machine.
+
 Compiling Instructions
 ======================
 1. Install Go v1.1.2 or higher: http://www.golang.org
 2. Download this project and extract it.  The base directory for the extracted program will, from this point on, be referred to as PROJECT_BASE.
 3. Set your $GOPATH to PROJECT_BASE/lib.  This is only needed for compiling and the environment variable need not be made persistent.
 4. Run "go build" specifying TranslationServer.go as the target.  You can specify where you want the binary file to be made.  TranslationServer.go can be found in either PROJECT_BASE/src/buffering or PROJECT_BASE/src/no-buffering.  Build the version that is right for you.  For example: go build PROJECT_BASE/src/buffering/TranslationServer.go
-5.  Run the binary file that was created.
+5. Run the binary file that was created.
+
+
+Supported Languages/Encoding
+============================
+All languages supported by translate.googole.com, however, if the encoding used for them is incorrect, you will see gibberish.
+
+ISO-8859-6: arabic (ar)
+ShiftJIS: japanese (ja)
+EUCKR: korean (ko)
+Windows 1251: russian (ru), bulgarian (bu), ukrainian (uk)
+GBK: simplified chinese (zh-CN)
+Big5: traditional chinese (zh-TW), thai (th)
+Windows 1252: default
 
 License
 =======
