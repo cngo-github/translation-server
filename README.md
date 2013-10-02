@@ -14,7 +14,7 @@ Compiling Instructions
 1. Install Go v1.1.2 or higher: http://www.golang.org
 2. Download this project and extract it.  The base directory for the extracted program will, from this point on, be referred to as PROJECT_BASE.
 3. Set your $GOPATH to PROJECT_BASE/lib.  This is only needed for compiling and the environment variable need not be made persistent.
-4. Run "go build" specifying TranslationServer.go as the target.  You can specify where you want the binary file to be made.  TranslationServer.go can be found in either PROJECT_BASE/src/buffering or PROJECT_BASE/src/no-buffering.  Build the version that is right for you.  For example: go build PROJECT_BASE/src/buffering/TranslationServer.go
+4. Run "go build" specifying TranslationServer.go as the target.  You can specify where you want the binary file to be made.  TranslationServer.go can be found in either PROJECT_BASE/src/buffering or PROJECT_BASE/src/no-buffering.  Build the version that is right for you.  For example: go build PROJECT_BASE/src/queue/TranslationServer.go
 5. Run the binary file that was created.
 
 
