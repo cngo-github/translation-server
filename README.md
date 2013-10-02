@@ -7,7 +7,7 @@ This program comes in two versions.  The no-queue version does not keep finished
 
 Notes
 =====
-- All translation jobs are run their own goroutine that is created for that job.  There is not cap on this on how many goroutines to make in this program.  Be mindful of the number of requests to send to this program and the load it will have on your machine.
+- All translation jobs are run on their own goroutine that is created for that job.  There is not cap on this on how many goroutines to make in this program.  Be mindful of the number of requests to send to this program and the load it will have on your machine.
 
 Compiling Instructions
 ======================
