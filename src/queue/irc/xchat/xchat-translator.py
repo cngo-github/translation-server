@@ -143,10 +143,10 @@ class Translator:
 
 		if type(result) == dict:
 			if result["Outgoing"]:
-				xchat.command("say " + result["Tgttxt"])
+				xchat.command("say " + result["Tgttxt"].encode("utf-8"))
 			elif result["Srctxt"] != result["Tgttxt"]:
 				context = xchat.find_context(channel=result["Channel"])
-				str = result["Tgttxt"]
+				str = result["Tgttxt"].encode("utf-8")
 				context.emit_print("Channel Message", "_[%s]" %(result["User"]), str)
 				
 			ACTIVE_JOBS -= 1
