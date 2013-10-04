@@ -7,9 +7,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
-//	"code.google.com/p/go-charset/charset"
 //	"fmt"
-//	"sjisconv"
 
 	"code.google.com/p/go.text/encoding/charmap"
 	"code.google.com/p/go.text/encoding/japanese"
@@ -88,26 +86,39 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 	}
 
 	var tr (*transform.Reader)
+	detectedLang := resp.Header.Get("Content-Language");
 
-	switch resp.Header.Get("Content-Language") {
-		case "ar":
+	switch {
+		case detectedLang == "ar" || request.Srclang == "ar":
+//		case "ar":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", ISO-8859-6 -> UTF-8.")
 			tr = transform.NewReader(resp.Body, charmap.ISO8859_6.NewDecoder())
-		case "ja":
+		case detectedLang == "ja" || request.Srclang == "ja":
+//		case "ja":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", ShiftJIS -> UTF-8")
 			tr = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
 //		case "en":
 //			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", no conversions.")
-		case "ko":
+		case detectedLang == "ko" || request.Srclang == "ko":
+//		case "ko":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", EUCKR -> UTF-8.")
 			tr = transform.NewReader(resp.Body, korean.EUCKR.NewDecoder())
-		case "ru", "bg", "uk":
+		case detectedLang == "ru" || request.Srclang == "ru":
+			fallthrough
+		case detectedLang == "bg" || request.Srclang == "bg":
+			fallthrough
+		case detectedLang == "uk" || request.Srclang == "uk":
+//		case "ru", "bg", "uk":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Windows 1251 -> UTF-8.")
 			tr = transform.NewReader(resp.Body, charmap.Windows1251.NewDecoder())
-		case "zh-CN":
+		case detectedLang == "zh-CN" || request.Srclang == "zh-CN":
+//		case "zh-CN":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", GBK -> UTF-8.")
 			tr = transform.NewReader(resp.Body, simplifiedchinese.GBK.NewDecoder())
-		case "zh-TW", "th":
+		case detectedLang == "zh-TW" || request.Srclang == "zh-TW":
+			fallthrough
+		case detectedLang == "th" || request.Srclang == "th":
+//		case "zh-TW", "th":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Big5 -> UTF-8.")
 			tr = transform.NewReader(resp.Body, traditionalchinese.Big5.NewDecoder())
 		default:

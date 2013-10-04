@@ -9,6 +9,7 @@ import (
 
 func main() {
 	l, err := net.Listen("tcp", "localhost:4242")
+	log.Println("Translation server started")
 
 	if err != nil {
 		log.Fatal(err)
