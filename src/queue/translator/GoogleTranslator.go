@@ -86,36 +86,36 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 	}
 
 	var tr (*transform.Reader)
-	detectedLang := resp.Header.Get("Content-Language");
-	log.Println("Switching")
+	detectedLang := resp.Header.Get("Content-Language")
+	log.Println("Switching: " + request.Srclang + " " + request.Tgtlang)
+
 	switch {
-		case detectedLang == "ar" || request.Tgtlang == "ar":
+		case detectedLang == "ar" || request.Srclang == "ar":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", ISO-8859-6 -> UTF-8.")
 			tr = transform.NewReader(resp.Body, charmap.ISO8859_6.NewDecoder())
-		case detectedLang == "ja" || request.Tgtlang == "ja":
+		case detectedLang == "ja" || request.Srclang == "ja":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", ShiftJIS -> UTF-8")
 			tr = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-//		case "en":
-//			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", no conversions.")
-		case detectedLang == "ko" || request.Tgtlang == "ko":
+		case detectedLang == "ko" || request.Srclang == "ko":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", EUCKR -> UTF-8.")
 			tr = transform.NewReader(resp.Body, korean.EUCKR.NewDecoder())
-		case detectedLang == "ru" || request.Tgtlang == "ru":
+		case detectedLang == "ru" || request.Srclang == "ru":
 			fallthrough
-		case detectedLang == "bg" || request.Tgtlang == "bg":
+		case detectedLang == "bg" || request.Srclang == "bg":
 			fallthrough
-		case detectedLang == "uk" || request.Tgtlang == "uk":
+		case detectedLang == "uk" || request.Srclang == "uk":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Windows 1251 -> UTF-8.")
 			tr = transform.NewReader(resp.Body, charmap.Windows1251.NewDecoder())
-		case detectedLang == "zh-CN" || request.Tgtlang == "zh-CN":
+		case detectedLang == "zh" || request.Srclang == "zh":
+			fallthrough
+		case detectedLang == "zh-CN" || request.Srclang == "zh-CN":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", GBK -> UTF-8.")
 			tr = transform.NewReader(resp.Body, simplifiedchinese.GBK.NewDecoder())
-		case detectedLang == "zh-TW" || request.Tgtlang == "zh-TW":
+		case detectedLang == "zh-TW" || request.Srclang == "zh-TW":
 			fallthrough
-		case detectedLang == "th" || request.Tgtlang == "th":
+		case detectedLang == "th" || request.Srclang == "th":
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Big5 -> UTF-8.")
 			tr = transform.NewReader(resp.Body, traditionalchinese.Big5.NewDecoder())
-//		case detectedLang == "fr" || request.Srclang == "fr":
 		default:
 			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Windows 1252 -> UTF-8")
 			tr = transform.NewReader(resp.Body, charmap.Windows1252.NewDecoder())
@@ -128,6 +128,8 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 
 	contents, err := ioutil.ReadAll(tr)
 
+//	fmt.Printf("contents: %s\n", contents)
+
 	if err != nil {
 		log.Println("Read JSON")
 		return err
@@ -136,6 +138,8 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 	var f interface{}
 	contents = sanitizeReturn(contents, 3)
 	err = json.Unmarshal(contents, &f)
+
+//	fmt.Printf("sanitized contents: %s\n", contents)
 
 	if err != nil {
 		log.Println("JSON failed sanitized.")
