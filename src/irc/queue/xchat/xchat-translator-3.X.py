@@ -120,7 +120,6 @@ CONN = None
 class Translator:
 	def translate(cls, channel, user, text, tgtLang = DEFAULT_LANG, outgoing = False, srcLang = "auto", tgtTxt = None, echoTxt = None, echo = False, kill = False, read = False):
 		global CONN
-		xchat.prnt("Lang: " + srcLang)
 
 		request = dict(Outgoing = outgoing, Channel = channel, User = user, Srctxt = text, Srclang = srcLang, Tgttxt = tgtTxt, Tgtlang = tgtLang, EchoTxt = echoTxt, Echo = echo, Kill = kill, Read = read)
 

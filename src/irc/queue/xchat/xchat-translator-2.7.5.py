@@ -110,6 +110,7 @@ LANGUAGES = {
   'WELSH' : 'cy',
   'YIDDISH' : 'yi'
 }
+LANG_CODES = dict((v,k) for (k,v) in LANGUAGES.items())
 
 WATCHLIST = {}
 ACTIVE_JOBS = 0
@@ -198,22 +199,24 @@ class Translator:
 		return None
 	closeConnection = classmethod(closeConnection)
 
-def findLangCode(cls, langauge):
-	if language is None:
-		return None
+def findLangCode(language):
+	lang = language.upper()
 
-	if language.upper() in cls.LANGUAGES:
-		return LANGUAGES[language.upper()]
+	if lang in LANGUAGES:
+		return LANGUAGES[lang]
+
+	if lang.lower() in LANG_CODES:
+		return lang.lower()
 
 	return None
 
-def addTranslationJob(text, targetLang, channel, user, outgoing = False):
+def addTranslationJob(text, targetLang, srcLang, channel, user, outgoing = False):
 	global TIMEOUT_HOOK
 	global TIMER
 	global ACTIVE_JOBS
 
 	ACTIVE_JOBS += 1
-	Translator.translate(channel, user, text, targetLang, outgoing)
+	Translator.translate(channel, user, text, targetLang, outgoing, srcLang)
 
 	if TIMEOUT_HOOK is None:
 		TIMEOUT_HOOK = xchat.hook_timer(TIMER, Translator.readResults)
@@ -227,8 +230,13 @@ def translateIncoming(word, word_eol, userdata):
 	key = channel + " " + user
 	chanKey = channel + " " + channel
 
-	if (key in WATCHLIST or chanKey in WATCHLIST) and not user.startswith("_["):
-		addTranslationJob(word_eol[1], DEFAULT_LANG, channel, user)
+	if key in WATCHLIST and not user.startswith("_["):
+		dest, src = WATCHLIST[key]
+		addTranslationJob(word_eol[1], dest, src, channel, user)
+
+	if chanKey in WATCHLIST and not user.startswith("_["):
+		dest, src = WATCHLIST[key]
+		addTranslationJob(word_eol[1], dest, src, channel, user)
 
 	return xchat.EAT_NONE
 xchat.hook_print("Channel Message", translateIncoming)
@@ -239,20 +247,36 @@ def addUser(word, word_eol, userdata):
 	global WATCHLIST
 
 	user = word[1]
+	src = "auto"
 	dest = DEFAULT_LANG
 
-	WATCHLIST[xchat.get_info("channel") + " " + user.lower()] = "Test"
+	if(len(word) > 2):
+		src = findLangCode(word[2])
+		
+		if src is None:
+			xchat.prnt("The specified language is invalid.")
+			return xchat.EAT_ALL
+		pass
+
+	if(len(word) > 3):
+		lang = findLangCode(word[3])
+
+		if lang is not None:
+			dest = lang
+		pass
+
+	WATCHLIST[xchat.get_info("channel") + " " + user.lower()] = (dest, src)
 	xchat.prnt("Now watching user: " + user)
 	return xchat.EAT_ALL
-xchat.hook_command("ADDTR", addUser)
+xchat.hook_command("ADDTR", addUser, help = "/ADDTR {user} {source_language} {target_language} - adds the specified user to the watchlist.  If {source_language} and/or {target_language} is not specified, then 'auto' will be used for the {source_language} and the DEFAULT_LANG will be used for the {target_language}.")
 
 def addChannel(word, word_eol, userdata):
-	global DFAULT_LANG
+	global DEFAULT_LANG
 	global WATCHLIST
 
 	channel = xchat.get_info("channel")
 
-	WATCHLIST[channel + " " + channel] = "Test"
+	WATCHLIST[channel + " " + channel] = ("DEFAULT_LANG", "auto")
 	xchat.prnt("Now watching channel: " + channel)
 	return xchat.EAT_ALL
 xchat.hook_command("ADDCHAN", addChannel, help = "/ADDCHAN - adds the current channel to the watch list")
@@ -267,12 +291,18 @@ def removeUser(word, word_eol, userdata):
 xchat.hook_command("RMTR", removeUser, help = "/RMTR <user_nick> - removes user_nick from the watch list for automatic translations.")
 
 def translateAndSay(word, word_eol, userdata):
-	addTranslationJob(word_eol[2], word[1], xchat.get_info("channel"), word[0].lower(), True)
+	lang = findLangCode(word[1])
+
+	if lang is None:
+		xchat.prnt("Invalid language name or code.  Aborting translation.")
+		return xchat.EAT_ALL
+
+	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), word[0].lower(), True)
 	return xchat.EAT_ALL
 xchat.hook_command("TRSEND", translateAndSay, help="/TRSEND <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 
 def translate(word, word_eol, userdata):
-	addTranslationJob(word_eol[2], word[1], xchat.get_info("channel"), word[0].lower())
+	addTranslationJob(word_eol[2], word[1], "auto", xchat.get_info("channel"), word[0].lower())
 	return xchat.EAT_ALL
 xchat.hook_command("TR", translate, help="/TR <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 
