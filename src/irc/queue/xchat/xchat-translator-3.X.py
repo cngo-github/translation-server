@@ -10,7 +10,7 @@ import json
 import socket
 import select
 
-DEFAULT_LANG = "fr"
+DEFAULT_LANG = "en"
 
 SERVER_IP = "127.0.0.1"
 SERVER_PORT = 4242
@@ -143,10 +143,10 @@ class Translator:
 
 		if type(result) == dict:
 			if result["Outgoing"]:
-				xchat.command("say " + result["Tgttxt"].encode("utf-8"))
+				xchat.command("say " + result["Tgttxt"])
 			elif result["Srctxt"] != result["Tgttxt"]:
 				context = xchat.find_context(channel=result["Channel"])
-				str = result["Tgttxt"].encode("utf-8")
+				str = result["Tgttxt"]
 				context.emit_print("Channel Message", "_[%s]" %(result["User"]), str)
 				
 			ACTIVE_JOBS -= 1
