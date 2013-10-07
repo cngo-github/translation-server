@@ -232,10 +232,11 @@ def translateIncoming(word, word_eol, userdata):
 
 	if key in WATCHLIST and not user.startswith("_["):
 		dest, src = WATCHLIST[key]
+		xchat.prnt(dest + " " + src)
 		addTranslationJob(word_eol[1], dest, src, channel, user)
 
 	if chanKey in WATCHLIST and not user.startswith("_["):
-		dest, src = WATCHLIST[key]
+		dest, src = WATCHLIST[chanKey]
 		addTranslationJob(word_eol[1], dest, src, channel, user)
 
 	return xchat.EAT_NONE
