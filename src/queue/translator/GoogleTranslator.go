@@ -7,14 +7,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/url"
-//	"fmt"
-
-	"code.google.com/p/go.text/encoding/charmap"
-	"code.google.com/p/go.text/encoding/japanese"
-	"code.google.com/p/go.text/encoding/korean"
-	"code.google.com/p/go.text/encoding/simplifiedchinese"
-	"code.google.com/p/go.text/encoding/traditionalchinese"
-	"code.google.com/p/go.text/transform"
 )
 
 type TranslateJob struct {
@@ -42,8 +34,6 @@ func HandleRequest(request TranslateJob, queue chan TranslateJob) {
 		log.Println(err)
 		return
 	}
-
-	log.Println([]byte(request.Tgttxt))
 
 	if request.Srctxt == request.Tgttxt {
 		//Translation failed or it was the same.
@@ -79,70 +69,30 @@ func HandleRequest(request TranslateJob, queue chan TranslateJob) {
 func RunTranslation(url string, echo bool, request *TranslateJob) error {
 	//Contact the server.
 	log.Println("Opening URL: " + url)
-	resp, err := http.Get(url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:24.0) Gecko/20100101 Firefox/24.0")
+
+	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
 		return err
 	}
 
-	var tr (*transform.Reader)
-	detectedLang := resp.Header.Get("Content-Language")
-	log.Println("Switching: " + request.Srclang + " " + request.Tgtlang)
-
-	switch {
-		case detectedLang == "ar" || request.Srclang == "ar":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", ISO-8859-6 -> UTF-8.")
-			tr = transform.NewReader(resp.Body, charmap.ISO8859_6.NewDecoder())
-		case detectedLang == "ja" || request.Srclang == "ja":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", ShiftJIS -> UTF-8")
-			tr = transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-		case detectedLang == "ko" || request.Srclang == "ko":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", EUCKR -> UTF-8.")
-			tr = transform.NewReader(resp.Body, korean.EUCKR.NewDecoder())
-		case detectedLang == "ru" || request.Srclang == "ru":
-			fallthrough
-		case detectedLang == "bg" || request.Srclang == "bg":
-			fallthrough
-		case detectedLang == "uk" || request.Srclang == "uk":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Windows 1251 -> UTF-8.")
-			tr = transform.NewReader(resp.Body, charmap.Windows1251.NewDecoder())
-		case detectedLang == "zh" || request.Srclang == "zh":
-			fallthrough
-		case detectedLang == "zh-CN" || request.Srclang == "zh-CN":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", GBK -> UTF-8.")
-			tr = transform.NewReader(resp.Body, simplifiedchinese.GBK.NewDecoder())
-		case detectedLang == "zh-TW" || request.Srclang == "zh-TW":
-			fallthrough
-		case detectedLang == "th" || request.Srclang == "th":
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Big5 -> UTF-8.")
-			tr = transform.NewReader(resp.Body, traditionalchinese.Big5.NewDecoder())
-		default:
-			log.Println("Langauge: " + resp.Header.Get("Content-Language") + ", Windows 1252 -> UTF-8")
-			tr = transform.NewReader(resp.Body, charmap.Windows1252.NewDecoder())
-	}
-
-	if tr == nil {
-		log.Println("Failed to convert the JSON")
-		return nil
-	}
-
-	contents, err := ioutil.ReadAll(tr)
-
-//	fmt.Printf("contents: %s\n", contents)
+	defer resp.Body.Close()
+	contents, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Println("Read JSON")
+		log.Println("Failed to read HTTP body.")
 		return err
 	}
 
 	var f interface{}
-	contents = sanitizeReturn(contents, 3)
-	err = json.Unmarshal(contents, &f)
-
-//	fmt.Printf("sanitized contents: %s\n", contents)
+	retJson := sanitizeReturn(string(contents), 3)
+	err = json.Unmarshal([]byte(retJson), &f)
 
 	if err != nil {
-		log.Println("JSON failed sanitized.")
+		log.Println("JSON failed to unmarshel.")
 		return err
 	}
 
@@ -179,12 +129,17 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 	return nil
 }
 
-func sanitizeReturn(result []byte, iterations int) []byte {
+func sanitizeReturn(result string, iterations int) string {
 	if(iterations > 1) {
 		result = sanitizeReturn(result, iterations - 1)
 	}
 
-	str := strings.Replace(string(result), ",,", ",0,", -1)
-	str = strings.Replace(str, "[,", "[0,", -1)
-	return []byte(str)
+	for iterations >= 0 {
+		result = strings.Replace(result, ",,", ",0,", -1)
+		result = strings.Replace(result, "[,", "[0,", -1)
+		iterations = iterations - 1
+	}
+
+	return result
 }
+
