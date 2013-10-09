@@ -142,4 +142,3 @@ func sanitizeReturn(result string, iterations int) string {
 
 	return result
 }
-
