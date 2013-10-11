@@ -145,7 +145,7 @@ class Translator:
 
 		if type(result) == dict:
 			if result["Outgoing"]:
-				txt = result["Tgttxt"] + " " +result["User"]
+				txt = "- " + result["User"] + " " + result["Tgttxt"]
 				xchat.command("say " + txt)
 			elif result["Srclang"] != result["Tgtlang"]:
 				context = xchat.find_context(channel=result["Channel"])
@@ -266,7 +266,6 @@ def translateOutgoing(word, word_eol, userdata):
 	key = channel + " " + user
 
 	if key in WATCHLIST:
-		xchat.prnt("Found user. " + key)
 		dest, src = WATCHLIST[key]
 
 		if src != "auto":
@@ -277,7 +276,6 @@ def translateOutgoing(word, word_eol, userdata):
 	key = key[:-1]
 
 	if key in WATCHLIST:
-		xchat.prnt("Found user. " + key)
 		dest, src, cnt = WATCHLIST[key]
 
 		if src != "auto":
@@ -311,7 +309,7 @@ def addUser(word, word_eol, userdata):
 		pass
 
 	WATCHLIST[xchat.get_info("channel") + " " + user.lower()] = (dest, src, 0)
-	xchat.prnt("Now watching user: " + user)
+	xchat.prnt("Now watching user: " + user + ", source: " + src + ", target: " + dest)
 	return xchat.EAT_ALL
 xchat.hook_command("ADDTR", addUser, help = "/ADDTR {user} {source_language} {target_language} - adds the specified user to the watchlist.  If {source_language} and/or {target_language} is not specified, then 'auto' will be used for the {source_language} and the DEFAULT_LANG will be used for the {target_language}.")
 
