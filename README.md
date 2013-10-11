@@ -1,5 +1,5 @@
-Translation Server
-==================
+Go Translation Server
+=====================
 
 This is a small program, written in Go, that communicates with translate.google.com in order to carry out translations of text between various languages.  It was built for the specific purpose of working with irc scripts to incorporate translation capabilities into an irc client.  For more details on how to talk to the program with a script or irc plugin, please go to the section titled {some title}.
 
@@ -13,7 +13,7 @@ Compiling Instructions
 ======================
 1. Install Go v1.1.2 or higher: http://www.golang.org
 2. Download this project and extract it.  The base directory for the extracted program will, from this point on, be referred to as PROJECT_BASE.
-3. Run "go build" specifying TranslationServer.go as the target.  You can specify where you want the binary file to be made.  TranslationServer.go can be found in either PROJECT_BASE/src/buffering or PROJECT_BASE/src/no-buffering.  Build the version that is right for you.  For example: go build PROJECT_BASE/src/queue/TranslationServer.go
+3. Run "go build" specifying TranslationServer.go as the target.  You can specify where you want the binary file to be made.  TranslationServer.go can be found in either PROJECT_BASE/src/queue or PROJECT_BASE/src/no-queue.  Build the version that is right for you.  For example: go build PROJECT_BASE/src/queue/TranslationServer.go
 4. Run the binary file that was created.
 
 IRC Script
@@ -30,6 +30,8 @@ This program comes with an IRC plugin for XChat/Hexchat.  This plugin was made u
 - /LSIG - prints the contents of the ignore list to the screen locally.
 - /TRINIT - reinitializes the plugin.
 - /TRDISABLE - disables translations and prevents translations results from being read.  This functionality has not yet been implemented.
+
+A plugin for Python 2.7.5 is also provided.  However, that version of the script is not as well tested as the Python 3.X version.
 
 License
 =======
