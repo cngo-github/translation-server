@@ -113,6 +113,7 @@ LANGUAGES = {
 LANG_CODES = dict((v,k) for (k,v) in LANGUAGES.items())
 
 WATCHLIST = {}
+CHANWATCHLIST = {}
 IGNORELIST = {}
 ACTIVE_JOBS = 0
 TIMEOUT_HOOK = None
@@ -143,6 +144,8 @@ class Translator:
 		CONN.send(jsonStr)
 		result = json.loads(CONN.recv(BUFFER_SIZE).decode("utf-8"))
 
+		key = result["Channel"] + " " + result["User"]
+
 		if type(result) == dict:
 			if result["Outgoing"]:
 				user = result["User"]
@@ -164,8 +167,6 @@ class Translator:
 				WATCHLIST[key] = (dest, src, cnt)
 
 			if result["Srclang"] == result["Tgtlang"]:
-				key = result["Channel"] + " " + result["User"]
-
 				cnt = 1
 
 				if key in WATCHLIST:
@@ -329,7 +330,7 @@ def addChannel(word, word_eol, userdata):
 
 	channel = xchat.get_info("channel")
 
-	WATCHLIST[channel + " " + channel] = (DEFAULT_LANG, "auto")
+	WATCHLIST[channel + " " + channel] = (DEFAULT_LANG, "auto", 0)
 	xchat.prnt("Now watching channel: " + channel)
 	return xchat.EAT_ALL
 xchat.hook_command("ADDCHAN", addChannel, help = "/ADDCHAN - adds the current channel to the watch list")
