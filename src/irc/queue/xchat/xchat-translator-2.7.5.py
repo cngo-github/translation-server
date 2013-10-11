@@ -145,14 +145,23 @@ class Translator:
 
 		if type(result) == dict:
 			if result["Outgoing"]:
-				txt = result["Tgttxt"] + " " +result["User"]
+				user = result["User"]
+				user = "- " + user
+
+				txt = user  + result["Tgttxt"]
 				xchat.command("say " + txt.encode("utf-8"))
+
+				dest, src, cnt = WATCHLIST[key]
+				cnt = cnt - 1
+				WATCHLIST[key] = (dest, src, cnt)
 			elif result["Srclang"] != result["Tgtlang"]:
-				xchat.prnt("Src: " + result["Srclang"]  + " Dest: " + result["Tgtlang"])
-				
 				context = xchat.find_context(channel=result["Channel"])
 				txt = result["Tgttxt"].encode("utf-8")
 				context.emit_print("Channel Message", "_[%s]" %(result["User"]), txt)
+
+				dest, src, cnt = WATCHLIST[key]
+				cnt = cnt - 1
+				WATCHLIST[key] = (dest, src, cnt)
 
 			if result["Srclang"] == result["Tgtlang"]:
 				key = result["Channel"] + " " + result["User"]
@@ -165,9 +174,6 @@ class Translator:
 					WATCHLIST[key] = (dest, src, cnt)
 				else:
 					WATCHLIST[key] = (dest, src, cnt)
-
-				cntStr = str(cnt)
-				xchat.prnt("User" + key + " Count: " + cntStr)
 
 				if cnt >= 5:
 					WATCHLIST.pop(key, None)
@@ -266,14 +272,11 @@ xchat.hook_print("Channel Message", translateIncoming)
 xchat.hook_print("Channel Msg Hilight", translateIncoming)
 
 def translateOutgoing(word, word_eol, userdata):
-	xchat.prnt("User: " + word[0])
-
 	channel = xchat.get_info("channel")
 	user = word[0].lower()
 	key = channel + " " + user
 
 	if key in WATCHLIST:
-		xchat.prnt("Found user. " + key)
 		dest, src = WATCHLIST[key]
 
 		if src != "auto":
@@ -284,7 +287,6 @@ def translateOutgoing(word, word_eol, userdata):
 	key = key[:-1]
 
 	if key in WATCHLIST:
-		xchat.prnt("Found user. " + key)
 		dest, src, cnt = WATCHLIST[key]
 
 		if src != "auto":
@@ -318,7 +320,7 @@ def addUser(word, word_eol, userdata):
 		pass
 
 	WATCHLIST[xchat.get_info("channel") + " " + user.lower()] = (dest, src, 0)
-	xchat.prnt("Now watching user: " + user)
+	xchat.prnt("Now watching user: " + user + ", source: " + src + ", target: " + dest)
 	return xchat.EAT_ALL
 xchat.hook_command("ADDTR", addUser, help = "/ADDTR {user} {source_language} {target_language} - adds the specified user to the watchlist.  If {source_language} and/or {target_language} is not specified, then 'auto' will be used for the {source_language} and the DEFAULT_LANG will be used for the {target_language}.")
 
@@ -357,7 +359,7 @@ def translateAndSay(word, word_eol, userdata):
 		xchat.prnt("Invalid language name or code.  Aborting translation.")
 		return xchat.EAT_ALL
 
-	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), word[0].lower(), True)
+	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), None, True)
 	return xchat.EAT_ALL
 xchat.hook_command("TRSEND", translateAndSay, help="/TRSEND <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 
@@ -374,9 +376,9 @@ def printWatchList(word, word_eol, userdata):
 xchat.hook_command("LSUSERS", printWatchList, help = "/LSUSERS - prints out all users on the watch list for automatic translations to the screen locally.")
 
 def printIgnoreList(word, word_eol, userdata):
-	users = [key.split(' ')[1] for key in WATCHLIST.keys()]
+	users = [key.split(' ')[1] for key in IGNORELIST.keys()]
 
-	xchat.prnt("WatchList: %s" %(" ".join(users)))
+	xchat.prnt("IGNORELIST: %s" %(" ".join(users)))
 	return xchat.EAT_ALL
 xchat.hook_command("LSIG", printWatchList, help = "/LSUSERS - prints out all users on the ignore list.")
 

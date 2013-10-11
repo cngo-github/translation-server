@@ -145,12 +145,23 @@ class Translator:
 
 		if type(result) == dict:
 			if result["Outgoing"]:
-				txt = "- " + result["User"] + " " + result["Tgttxt"]
+				user = result["User"]
+				user = "- " + user
+
+				txt = user  + result["Tgttxt"]
 				xchat.command("say " + txt)
+
+				dest, src, cnt = WATCHLIST[key]
+				cnt = cnt - 1
+				WATCHLIST[key] = (dest, src, cnt)
 			elif result["Srclang"] != result["Tgtlang"]:
 				context = xchat.find_context(channel=result["Channel"])
 				txt = result["Tgttxt"]
 				context.emit_print("Channel Message", "_[%s]" %(result["User"]), txt)
+
+				dest, src, cnt = WATCHLIST[key]
+				cnt = cnt - 1
+				WATCHLIST[key] = (dest, src, cnt)
 
 			if result["Srclang"] == result["Tgtlang"]:
 				key = result["Channel"] + " " + result["User"]
@@ -348,7 +359,7 @@ def translateAndSay(word, word_eol, userdata):
 		xchat.prnt("Invalid language name or code.  Aborting translation.")
 		return xchat.EAT_ALL
 
-	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), word[0].lower(), True)
+	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), None, True)
 	return xchat.EAT_ALL
 xchat.hook_command("TRSEND", translateAndSay, help="/TRSEND <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 
