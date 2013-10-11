@@ -145,6 +145,7 @@ class Translator:
 		result = json.loads(CONN.recv(BUFFER_SIZE).decode("utf-8"))
 
 		key = result["Channel"] + " " + result["User"]
+		key.encode("utf-8")
 
 		if type(result) == dict:
 			if result["Outgoing"]:
@@ -156,6 +157,10 @@ class Translator:
 
 				dest, src, cnt = WATCHLIST[key]
 				cnt = cnt - 1
+
+				if src == "auto":
+					src = result["Srclang"]
+
 				WATCHLIST[key] = (dest, src, cnt)
 			elif result["Srclang"] != result["Tgtlang"]:
 				context = xchat.find_context(channel=result["Channel"])
@@ -164,6 +169,10 @@ class Translator:
 
 				dest, src, cnt = WATCHLIST[key]
 				cnt = cnt - 1
+
+				if src == "auto":
+					src = result["Srclang"]
+
 				WATCHLIST[key] = (dest, src, cnt)
 
 			if result["Srclang"] == result["Tgtlang"]:
@@ -264,8 +273,8 @@ def translateIncoming(word, word_eol, userdata):
 		dest, src, cnt = WATCHLIST[key]
 		addTranslationJob(word_eol[1], dest, src, channel, user)
 
-	if chanKey in WATCHLIST and not user.startswith("_["):
-		dest, src, cnt = WATCHLIST[chanKey]
+	if chanKey in CHANWATCHLIST and not user.startswith("_["):
+		dest, src = WATCHLIST[chanKey]
 		addTranslationJob(word_eol[1], dest, src, channel, user)
 
 	return xchat.EAT_NONE
@@ -330,7 +339,7 @@ def addChannel(word, word_eol, userdata):
 
 	channel = xchat.get_info("channel")
 
-	WATCHLIST[channel + " " + channel] = (DEFAULT_LANG, "auto", 0)
+	CHANWATCHLIST[channel + " " + channel] = (DEFAULT_LANG, "auto")
 	xchat.prnt("Now watching channel: " + channel)
 	return xchat.EAT_ALL
 xchat.hook_command("ADDCHAN", addChannel, help = "/ADDCHAN - adds the current channel to the watch list")
