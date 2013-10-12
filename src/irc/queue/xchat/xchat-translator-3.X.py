@@ -135,6 +135,7 @@ class Translator:
 
 	def readResults(cls, userdata = None):
 		global TIMEOUT_HOOK
+		global WATCHLIST
 		global IGNORELIST
 		global ACTIVE_JOBS
 
@@ -145,37 +146,47 @@ class Translator:
 		result = json.loads(CONN.recv(BUFFER_SIZE).decode("utf-8"))
 
 		key = result["Channel"] + " " + result["User"]
-		key.encode("utf-8")
+		user = result["User"]
 
 		if type(result) == dict:
 			if result["Outgoing"]:
-				user = result["User"]
-				user = "- " + user
+				pruser = "- " + user
 
-				txt = user  + result["Tgttxt"]
+				txt = pruser  + result["Tgttxt"]
 				xchat.command("say " + txt)
 
-				dest, src, cnt = WATCHLIST[key]
-				cnt = cnt - 1
+				if WATCHLIST is not None and key in WATCHLIST:
+					dest, src, cnt = WATCHLIST[key]
+					cnt = cnt - 1
 
-				if src == "auto":
+					if src == "auto":
+						src = result["Srclang"]
+
+					WATCHLIST[key] = (dest, src, cnt)
+				elif user is not None and user != "":
+					dest = DEFAULT_LANG
 					src = result["Srclang"]
+					cnt = 0
 
-				WATCHLIST[key] = (dest, src, cnt)
-			elif result["Srclang"] != result["Tgtlang"]:
+					WATCHLIST[key] = (dest, src, cnt)
+
+				pass
+			elif result["Srclang"] != result["Tgtlang"] and user is not None and user != "":
 				context = xchat.find_context(channel=result["Channel"])
 				txt = result["Tgttxt"]
 				context.emit_print("Channel Message", "_[%s]" %(result["User"]), txt)
 
-				dest, src, cnt = WATCHLIST[key]
-				cnt = cnt - 1
+				if WATCHLIST is not None and key in WATCHLIST:
+					dest, src, cnt = WATCHLIST[key]
+					cnt = cnt - 1
 
-				if src == "auto":
-					src = result["Srclang"]
+					if src == "auto":
+						src = result["Srclang"]
 
-				WATCHLIST[key] = (dest, src, cnt)
+					WATCHLIST[key] = (dest, src, cnt)
+				pass
 
-			if result["Srclang"] == result["Tgtlang"]:
+			if result["Srclang"] == result["Tgtlang"] and user is not None and user != "":
 				cnt = 1
 
 				if key in WATCHLIST:
@@ -183,6 +194,10 @@ class Translator:
 					cnt = cnt + 1
 					WATCHLIST[key] = (dest, src, cnt)
 				else:
+					dest = DEFAULT_LANG
+					src = result["Srclang"]
+					cnt = 0
+
 					WATCHLIST[key] = (dest, src, cnt)
 
 				if cnt >= 5:
@@ -261,9 +276,66 @@ def addTranslationJob(text, targetLang, srcLang, channel, user, outgoing = False
 		TIMEOUT_HOOK = xchat.hook_timer(TIMER, Translator.readResults)
 	return None
 
-def translateIncoming(word, word_eol, userdata):
-	global DEFAULT_LANG
+def removeUser(key):
+	global WATCHLIST
+	global IGNORELIST
 
+	if WATCHLIST is not None and WATCHLIST.pop(key, None) is not None:
+		xchat.prnt("Removed " + key + " from the watch list.")
+
+	if IGNORELIST is not None and IGNORELIST.pop(key, None) is not None:
+		xchat.prnt("Removed " + key + " from the ignore list.")
+
+	return None
+
+def quitRemoveUser(word, word_eol, userdata):
+	channel = xchat.get_info("channel")
+	user = word[0]
+
+	if user is None:
+		return xchat.EAT_NONE
+
+	key = channel + " " + user.lower()
+	removeUser(key)
+
+	return xchat.EAT_NONE
+xchat.hook_print("Quit", quitRemoveUser)
+
+def kickRemoveUser(word, word_eol, userdata):
+	channel = xchat.get_info("channel")
+	user = word[1]
+
+	if user is None:
+		return xchat.EAT_NONE
+
+	key = channel + " " + user.lower()
+	removeUser(key)
+
+	return xchat.EAT_NONE
+xchat.hook_print("Kick", kickRemoveUser)
+
+def updateUserNick(word, word_eol, userdata):
+	channel = xchat.get_info("channel")
+	userOld = word[0]
+	userNew = word[1]
+
+	if userOld is None or userNew is None:
+		return xchat.EAT_NONE
+
+	userOld = userOld.lower()
+	userNew = userNew.lower()
+	key = channel + " " + userOld
+
+	if key in WATCHLIST:
+		dest, src, cnt = WATCHLIST[key]
+
+		if WATCHLIST.pop(key, None) is not None:
+			WATCHLIST[xchat.get_info("channel") + " " + userNew.lower()] = (dest, src, cnt)
+			xchat.prnt("Watching " + userNew + ", fomerly " + userOld)
+		return xchat.EAT_NONE
+xchat.hook_print("Change Nick", updateUserNick)
+
+def translateIncoming(word, word_eol, userdata):
 	channel = xchat.get_info("channel")
 	user = word[0].lower()
 	key = channel + " " + user
@@ -329,7 +401,8 @@ def addUser(word, word_eol, userdata):
 			dest = lang
 		pass
 
-	WATCHLIST[xchat.get_info("channel") + " " + user.lower()] = (dest, src, 0)
+	key = xchat.get_info("channel") + " " + user.lower()
+	WATCHLIST[key] = (dest, src, 0)
 	xchat.prnt("Now watching user: " + user + ", source: " + src + ", target: " + dest)
 	return xchat.EAT_ALL
 xchat.hook_command("ADDTR", addUser, help = "/ADDTR {user} {source_language} {target_language} - adds the specified user to the watchlist.  If {source_language} and/or {target_language} is not specified, then 'auto' will be used for the {source_language} and the DEFAULT_LANG will be used for the {target_language}.")
@@ -344,14 +417,24 @@ def addChannel(word, word_eol, userdata):
 	return xchat.EAT_ALL
 xchat.hook_command("ADDCHAN", addChannel, help = "/ADDCHAN - adds the current channel to the watch list")
 
-def removeUser(word, word_eol, userdata):
+def manualRemoveUser(word, word_eol, userdata):
 	user = word[1]
 
-	if WATCHLIST.pop(xchat.get_info("channel") + " " + user.lower(), None) is not None:
-		xchat.prnt("User %s has been removed from the watch list." %user)
+	if user is None:
+		return xchat.EAT_ALL
+
+	removeUser(xchat.get_info("channel") + " " + user.lower())
+	return xchat.EAT_ALL
+xchat.hook_command("RMTR", manualRemoveUser, help = "/RMTR {user_nick} - removes {user_nick} from the watch list for automatic translations.")
+
+def removeChannel(word, word_eol, userdata):
+	channel = xchat.get_info("channel")
+
+	if WATCHLIST.pop(channel + " " + channel, None) is not None:
+		xchat.prnt("Channel %s has been removed from the watch list." %channel)
 
 	return xchat.EAT_ALL
-xchat.hook_command("RMTR", removeUser, help = "/RMTR <user_nick> - removes user_nick from the watch list for automatic translations.")
+xchat.hook_command("RMCHAN", removeChannel, help = "/RMCHAN - removes the channel from the channel watch list for automatic translations.")
 
 def removeIgnore(word, word_eol, userdata):
 	user = word[1]
@@ -379,18 +462,49 @@ def translate(word, word_eol, userdata):
 xchat.hook_command("TR", translate, help="/TR <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 
 def printWatchList(word, word_eol, userdata):
-	users = [key.split(' ')[1] for key in WATCHLIST.keys()]
+	if WATCHLIST is None:
+		xchat.prnt("Watchlist is empty.")
 
-	xchat.prnt("WatchList: %s" %(" ".join(users)))
+	xchat.prnt("Printing watch list (nick, channel, src, dest, error count)")
+
+	for key in WATCHLIST.keys():
+		channel, user = key.split(' ')
+		dest, src, cnt = WATCHLIST[key]
+
+		xchat.prnt("- " + user + " " + channel + " " + src + " " + dest + " " + str(cnt))
+
 	return xchat.EAT_ALL
 xchat.hook_command("LSUSERS", printWatchList, help = "/LSUSERS - prints out all users on the watch list for automatic translations to the screen locally.")
 
-def printIgnoreList(word, word_eol, userdata):
-	users = [key.split(' ')[1] for key in IGNORELIST.keys()]
+def printChanWatchList(word, word_eol, userdata):
+	if CHANWATCHLIST is None:
+		xchat.prnt("Watchlist is empty.")
 
-	xchat.prnt("IGNORELIST: %s" %(" ".join(users)))
+	xchat.prnt("Printing channel watch list (nick, channel, src, dest)")
+
+	for key in CHANWATCHLIST.keys():
+		channel, user = key.split(' ')
+		dest, src, cnt = WATCHLIST[key]
+
+		xchat.prnt("- " + user + " " + channel + " " + src + " " + dest)
+
 	return xchat.EAT_ALL
-xchat.hook_command("LSIG", printWatchList, help = "/LSUSERS - prints out all users on the ignore list.")
+xchat.hook_command("LSCHAN", printChanWatchList, help = "/LSCHAN - prints out all users on the watch list for automatic translations to the screen locally.")
+
+def printIgnoreList(word, word_eol, userdata):
+	if IGNORELIST is None:
+		xchat.prnt("Watchlist is empty.")
+
+	xchat.prnt("Printing ignore list (nick, channel, src, dest)")
+
+	for key in IGNORELIST.keys():
+		channel, user = key.split(' ')
+		dest, src, cnt = WATCHLIST[key]
+
+		xchat.prnt("- " + user + " " + channel + " " + src + " " + dest)
+
+	return xchat.EAT_ALL
+xchat.hook_command("LSIG", printIgnoreList, help = "/LSUSERS - prints out all users on the ignore list.")
 
 def initialize(word, word_eol, userdata):
 	global CONN
