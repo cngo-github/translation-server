@@ -204,7 +204,7 @@ class Translator:
 				else:
 					dest = DEFAULT_LANG
 					src = result["Srclang"]
-					cnt = 0
+					cnt = 1
 
 					WATCHLIST[key] = (dest, src, cnt)
 
@@ -232,21 +232,6 @@ class Translator:
 
 		return None
 	connectToServer = classmethod(connectToServer)
-
-	def checkConnection(cls, status):
-		r, w, e = select.select([CONN,], [CONN,], [CONN,], 0)
-
-		if status == "r":
-			return r
-
-		if status == "w":
-			return w
-
-		if status == "e":
-			return e
-
-		return False
-	checkConnection = classmethod(checkConnection)
 
 	def closeConnection(cls):
 		global CONN
@@ -362,12 +347,15 @@ xchat.hook_print("Channel Message", translateIncoming)
 xchat.hook_print("Channel Msg Hilight", translateIncoming)
 
 def translateOutgoing(word, word_eol, userdata):
+	if len(word) < 2:
+		return xchat.EAT_NONE
+
 	channel = xchat.get_info("channel")
 	user = word[0].lower()
 	key = channel + " " + user
 
 	if key in WATCHLIST:
-		dest, src = WATCHLIST[key]
+		dest, src, cnt = WATCHLIST[key]
 
 		if src != "auto":
 			addTranslationJob(word_eol[1], src, dest, channel, user, ECHO, True)
@@ -448,6 +436,9 @@ def removeChannel(word, word_eol, userdata):
 xchat.hook_command("RMCHAN", removeChannel, help = "/RMCHAN - removes the channel from the channel watch list for automatic translations.")
 
 def removeIgnore(word, word_eol, userdata):
+	if len(word) < 2:
+		return xchat.EAT_ALL
+
 	user = word[1]
 
 	if IGNORELIST.pop(xchat.get_info("channel") + " " + user.lower(), None) is not None:
@@ -473,9 +464,6 @@ def translate(word, word_eol, userdata):
 xchat.hook_command("TR", translate, help="/TR <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 
 def printWatchList(word, word_eol, userdata):
-	if WATCHLIST is None:
-		xchat.prnt("Watchlist is empty.")
-
 	xchat.prnt("Printing watch list (nick, channel, src, dest, error count)")
 
 	for key in WATCHLIST.keys():
@@ -488,9 +476,6 @@ def printWatchList(word, word_eol, userdata):
 xchat.hook_command("LSUSERS", printWatchList, help = "/LSUSERS - prints out all users on the watch list for automatic translations to the screen locally.")
 
 def printChanWatchList(word, word_eol, userdata):
-	if CHANWATCHLIST is None:
-		xchat.prnt("Watchlist is empty.")
-
 	xchat.prnt("Printing channel watch list (nick, channel, src, dest)")
 
 	for key in CHANWATCHLIST.keys():
@@ -503,9 +488,6 @@ def printChanWatchList(word, word_eol, userdata):
 xchat.hook_command("LSCHAN", printChanWatchList, help = "/LSCHAN - prints out all users on the watch list for automatic translations to the screen locally.")
 
 def printIgnoreList(word, word_eol, userdata):
-	if IGNORELIST is None:
-		xchat.prnt("Watchlist is empty.")
-
 	xchat.prnt("Printing ignore list (nick, channel, src, dest)")
 
 	for key in IGNORELIST.keys():
@@ -552,15 +534,5 @@ def unload_plugin(userdata):
 	xchat.prnt("Translator is unloaded.")
 	return None
 xchat.hook_unload(unload_plugin)
-
-def disableRead(word, word_eol, userdata):
-	global TIMEOUT_HOOK
-
-	if TIMEOUT_HOOK is not None:
-		xchat.unhook(TIMEOUT_HOOK)
-		TIMEOUT_HOOK = None
-
-	return xchat.EAT_ALL
-xchat.hook_command("TRDISABLE", disableRead, "/TRDISABLE - disables translations and prevents translations results from being read.")
 
 xchat.prnt("Translator is loaded.")
