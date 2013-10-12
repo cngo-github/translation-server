@@ -20,6 +20,8 @@ SERVER_PORT = 4242
 BUFFER_SIZE = 1024
 TIMER = 100
 
+ENABLE_UPDATELANG = False
+
 LANGUAGES = {
   'AFRIKAANS' : 'af',
   'ALBANIAN' : 'sq',
@@ -167,11 +169,11 @@ class Translator:
 					dest, src, cnt = WATCHLIST[key]
 					cnt = cnt - 1
 
-					if src == "auto":
+					if src == "auto" and ENABLE_DEFAULTLANG:
 						src = result["Srclang"]
 
 					WATCHLIST[key] = (dest, src, cnt)
-				elif user is not None and user != "":
+				elif user is not None and user != "" and ENABLE_DEFAULTLANG:
 					dest = DEFAULT_LANG
 					src = result["Srclang"]
 					cnt = 0
@@ -188,7 +190,7 @@ class Translator:
 					dest, src, cnt = WATCHLIST[key]
 					cnt = cnt - 1
 
-					if src == "auto":
+					if src == "auto" and ENABLE_DEFAULTLANG:
 						src = result["Srclang"]
 
 					WATCHLIST[key] = (dest, src, cnt)
