@@ -11,7 +11,9 @@ import socket
 import select
 
 DEFAULT_LANG = "en"
-ECHO = True
+
+# Must be either True or False and the capitalization matters.
+ECHO = False
 
 SERVER_IP = "127.0.0.1"
 SERVER_PORT = 4242
