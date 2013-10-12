@@ -11,6 +11,7 @@ import socket
 import select
 
 DEFAULT_LANG = "en"
+ECHO = True
 
 SERVER_IP = "127.0.0.1"
 SERVER_PORT = 4242
@@ -120,10 +121,10 @@ TIMEOUT_HOOK = None
 CONN = None
 
 class Translator:
-	def translate(cls, channel, user, text, tgtLang = DEFAULT_LANG, outgoing = False, srcLang = "auto", tgtTxt = None, echoTxt = None, echo = False, kill = False, read = False):
+	def translate(cls, channel, user, text, tgtLang = DEFAULT_LANG, echo = False, outgoing = False, srcLang = "auto", tgtTxt = None, echoTxt = None, kill = False, read = False):
 		global CONN
 
-		request = dict(Outgoing = outgoing, Channel = channel, User = user, Srctxt = text, Srclang = srcLang, Tgttxt = tgtTxt, Tgtlang = tgtLang, EchoTxt = echoTxt, Echo = echo, Kill = kill, Read = read)
+		request = dict(Outgoing = outgoing, Channel = channel, User = user, Srctxt = text, Srclang = srcLang, Tgttxt = tgtTxt, Tgtlang = tgtLang, Echotxt = echoTxt, Echo = echo, Kill = kill, Read = read)
 
 		cls.connectToServer()
 		
@@ -139,7 +140,7 @@ class Translator:
 		global IGNORELIST
 		global ACTIVE_JOBS
 
-		request = dict(Outgoing = None, Channel = None, User = None, Srctxt = None, Srclang = None, Tgttxt = None, Tgtlang = None, EchoTxt = None, Echo = False, Kill = False, Read = True)
+		request = dict(Outgoing = None, Channel = None, User = None, Srctxt = None, Srclang = None, Tgttxt = None, Tgtlang = None, Echotxt = None, Echo = False, Kill = False, Read = True)
 		jsonStr = json.dumps(request).encode("utf-8")
 
 		CONN.send(jsonStr)
@@ -147,6 +148,7 @@ class Translator:
 
 		key = result["Channel"] + " " + result["User"]
 		user = result["User"]
+		xchat.prnt("reading " + str(result["Outgoing"]))
 
 		if type(result) == dict:
 			if result["Outgoing"]:
@@ -154,6 +156,11 @@ class Translator:
 
 				txt = pruser  + result["Tgttxt"]
 				xchat.command("say " + txt)
+
+				if ECHO:
+					context = xchat.find_context(channel=result["Channel"])
+					txt = result["Echotxt"]
+					context.emit_print("Channel Message", "_[echo]", txt)
 
 				if WATCHLIST is not None and key in WATCHLIST:
 					dest, src, cnt = WATCHLIST[key]
@@ -264,13 +271,13 @@ def findLangCode(language):
 
 	return None
 
-def addTranslationJob(text, targetLang, srcLang, channel, user, outgoing = False):
+def addTranslationJob(text, targetLang, srcLang, channel, user, echo = False, outgoing = False):
 	global TIMEOUT_HOOK
 	global TIMER
 	global ACTIVE_JOBS
 
 	ACTIVE_JOBS += 1
-	Translator.translate(channel, user, text, targetLang, outgoing, srcLang)
+	Translator.translate(channel, user, text, targetLang, echo, outgoing, srcLang)
 
 	if TIMEOUT_HOOK is None:
 		TIMEOUT_HOOK = xchat.hook_timer(TIMER, Translator.readResults)
@@ -362,7 +369,7 @@ def translateOutgoing(word, word_eol, userdata):
 		dest, src = WATCHLIST[key]
 
 		if src != "auto":
-			addTranslationJob(word_eol[1], src, dest, channel, user, True)
+			addTranslationJob(word_eol[1], src, dest, channel, user, ECHO, True)
 
 		return xchat.EAT_ALL
 
@@ -372,7 +379,7 @@ def translateOutgoing(word, word_eol, userdata):
 		dest, src, cnt = WATCHLIST[key]
 
 		if src != "auto":
-			addTranslationJob(word_eol[1], src, dest, channel, user, True)
+			addTranslationJob(word_eol[1], src, dest, channel, user, ECHO, True)
 
 		return xchat.EAT_ALL
 
@@ -452,7 +459,7 @@ def translateAndSay(word, word_eol, userdata):
 		xchat.prnt("Invalid language name or code.  Aborting translation.")
 		return xchat.EAT_ALL
 
-	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), None, True)
+	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), None, ECHO, True)
 	return xchat.EAT_ALL
 xchat.hook_command("TRSEND", translateAndSay, help="/TRSEND <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
 

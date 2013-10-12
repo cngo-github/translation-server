@@ -44,6 +44,7 @@ func HandleRequest(request TranslateJob, queue chan TranslateJob) {
 
 	//"Echoes" the translation if desired.
 	if request.Echo == true {
+		log.Println("Echoing")
 		v := url.Values{}
 		v.Set("q", request.Tgttxt)
 		v.Add("client", "t")
@@ -111,16 +112,16 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 		arr = s
 	}
 
-	if echo == true {
-		request.Echotxt = arr[0].(string)
-		return nil
-	}
-
 	var txt string
 
 	for i := 0; i < cap(arr); i++ {
 		arrText := arr[i].([]interface{})
 		txt = txt + arrText[0].(string) + " "
+	}
+
+	if echo == true {
+		request.Echotxt = txt
+		return nil
 	}
 
 	request.Tgttxt = txt
