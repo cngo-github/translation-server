@@ -11,7 +11,7 @@ import socket
 import select
 
 DEFAULT_LANG = "en"
-
+MAX_ERROR = 3
 # Must be either True or False and the capitalization matters.
 ECHO = False
 
@@ -150,7 +150,6 @@ class Translator:
 
 		key = result["Channel"] + " " + result["User"]
 		user = result["User"]
-		xchat.prnt("reading " + str(result["Outgoing"]))
 
 		if type(result) == dict:
 			if result["Outgoing"]:
@@ -209,7 +208,7 @@ class Translator:
 
 					WATCHLIST[key] = (dest, src, cnt)
 
-				if cnt >= 5:
+				if cnt >= MAX_ERROR:
 					WATCHLIST.pop(key, None)
 					IGNORELIST[key] = (dest, src)
 				
@@ -355,7 +354,7 @@ def translateIncoming(word, word_eol, userdata):
 		addTranslationJob(word_eol[1], dest, src, channel, user)
 
 	if chanKey in CHANWATCHLIST and not user.startswith("_["):
-		dest, src = WATCHLIST[chanKey]
+		dest, src = CHANWATCHLIST[chanKey]
 		addTranslationJob(word_eol[1], dest, src, channel, user)
 
 	return xchat.EAT_NONE
@@ -391,11 +390,14 @@ xchat.hook_command('', translateOutgoing, help = "Triggers on all /say commands"
 def addUser(word, word_eol, userdata):
 	global WATCHLIST
 
+	if len(word) < 2:
+		return xchat.EAT_ALL
+
 	user = word[1]
 	src = "auto"
 	dest = DEFAULT_LANG
 
-	if(len(word) > 2):
+	if len(word) > 2 :
 		src = findLangCode(word[2])
 		
 		if src is None:
@@ -403,7 +405,7 @@ def addUser(word, word_eol, userdata):
 			return xchat.EAT_ALL
 		pass
 
-	if(len(word) > 3):
+	if len(word) > 3:
 		lang = findLangCode(word[3])
 
 		if lang is not None:
@@ -439,7 +441,7 @@ xchat.hook_command("RMTR", manualRemoveUser, help = "/RMTR {user_nick} - removes
 def removeChannel(word, word_eol, userdata):
 	channel = xchat.get_info("channel")
 
-	if WATCHLIST.pop(channel + " " + channel, None) is not None:
+	if CHANWATCHLIST.pop(channel + " " + channel, None) is not None:
 		xchat.prnt("Channel %s has been removed from the watch list." %channel)
 
 	return xchat.EAT_ALL
@@ -493,7 +495,7 @@ def printChanWatchList(word, word_eol, userdata):
 
 	for key in CHANWATCHLIST.keys():
 		channel, user = key.split(' ')
-		dest, src, cnt = WATCHLIST[key]
+		dest, src = CHANWATCHLIST[key]
 
 		xchat.prnt("- " + user + " " + channel + " " + src + " " + dest)
 
@@ -508,7 +510,7 @@ def printIgnoreList(word, word_eol, userdata):
 
 	for key in IGNORELIST.keys():
 		channel, user = key.split(' ')
-		dest, src, cnt = WATCHLIST[key]
+		dest, src = IGNORELIST[key]
 
 		xchat.prnt("- " + user + " " + channel + " " + src + " " + dest)
 
