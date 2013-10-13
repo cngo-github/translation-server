@@ -190,7 +190,7 @@ class Translator:
 					dest, src, cnt = WATCHLIST[key]
 					cnt = cnt - 1
 
-					if src == "auto":
+					if src == "auto" and ENABLE_DEFAULTLANG:
 						src = result["Srclang"]
 
 					WATCHLIST[key] = (dest, src, cnt)
@@ -450,6 +450,9 @@ def removeIgnore(word, word_eol, userdata):
 xchat.hook_command("RMIG", removeIgnore, help = "/RMTR <user_nick> - removes user_nick from the ignore list.")
 
 def translateAndSay(word, word_eol, userdata):
+	if len(word) < 3:
+		return xchat.EAT_ALL
+
 	lang = findLangCode(word[1])
 
 	if lang is None:
