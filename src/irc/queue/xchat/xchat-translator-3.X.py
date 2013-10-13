@@ -409,7 +409,7 @@ def addUser(word, word_eol, userdata):
 xchat.hook_command("ADDTR", addUser, help = "/ADDTR {user} {source_language} {target_language} - adds the specified user to the watchlist.  If {source_language} and/or {target_language} is not specified, then 'auto' will be used for the {source_language} and the DEFAULT_LANG will be used for the {target_language}.")
 
 def addChannel(word, word_eol, userdata):
-	global WATCHLIST
+	global CHANWATCHLIST
 
 	channel = xchat.get_info("channel")
 
@@ -418,7 +418,24 @@ def addChannel(word, word_eol, userdata):
 	return xchat.EAT_ALL
 xchat.hook_command("ADDCHAN", addChannel, help = "/ADDCHAN - adds the current channel to the channel watch list")
 
+def addIgnore(word, word_eol, userdata):
+	global IGNORELIST
+
+	if len(word) < 2:
+		return xchat.EAT_ALL
+
+	channel = xchat.get_info("channel")
+	user = word[1]
+
+	IGNORELIST[channel + " " + user] = (DEFAULT_LANG, "auto")
+	xchat.prnt("Now ignoring user: " + user)
+	return xchat.EAT_ALL
+xchat.hook_command("ADDIG", addIgnore, help = "/ADDCHAN {user_nick} - adds the {user_nick} to the ignore list")
+
 def manualRemoveUser(word, word_eol, userdata):
+	if len(word) < 2:
+		return xchat.EAT_ALL
+
 	user = word[1]
 
 	if user is None:
