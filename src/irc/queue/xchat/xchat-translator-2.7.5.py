@@ -409,16 +409,33 @@ def addUser(word, word_eol, userdata):
 xchat.hook_command("ADDTR", addUser, help = "/ADDTR {user} {source_language} {target_language} - adds the specified user to the watchlist.  If {source_language} and/or {target_language} is not specified, then 'auto' will be used for the {source_language} and the DEFAULT_LANG will be used for the {target_language}.")
 
 def addChannel(word, word_eol, userdata):
-	global WATCHLIST
+	global CHANWATCHLIST
 
 	channel = xchat.get_info("channel")
 
 	CHANWATCHLIST[channel + " " + channel] = (DEFAULT_LANG, "auto")
 	xchat.prnt("Now watching channel: " + channel)
 	return xchat.EAT_ALL
-xchat.hook_command("ADDCHAN", addChannel, help = "/ADDCHAN - adds the current channel to the watch list")
+xchat.hook_command("ADDCHAN", addChannel, help = "/ADDCHAN - adds the current channel to the channel watch list")
+
+def addIgnore(word, word_eol, userdata):
+	global IGNORELIST
+
+	if len(word) < 2:
+		return xchat.EAT_ALL
+
+	channel = xchat.get_info("channel")
+	user = word[1]
+
+	IGNORELIST[channel + " " + user] = (DEFAULT_LANG, "auto")
+	xchat.prnt("Now ignoring user: " + user)
+	return xchat.EAT_ALL
+xchat.hook_command("ADDIG", addIgnore, help = "/ADDCHAN {user_nick} - adds the {user_nick} to the ignore list")
 
 def manualRemoveUser(word, word_eol, userdata):
+	if len(word) < 2:
+		return xchat.EAT_ALL
+
 	user = word[1]
 
 	if user is None:
@@ -447,7 +464,7 @@ def removeIgnore(word, word_eol, userdata):
 		xchat.prnt("User %s has been removed from the ignore list." %user)
 
 	return xchat.EAT_ALL
-xchat.hook_command("RMIG", removeIgnore, help = "/RMTR <user_nick> - removes user_nick from the ignore list.")
+xchat.hook_command("RMIG", removeIgnore, help = "/RMTR {user_nick} - removes {user_nick} from the ignore list.")
 
 def translateAndSay(word, word_eol, userdata):
 	if len(word) < 3:
@@ -461,12 +478,12 @@ def translateAndSay(word, word_eol, userdata):
 
 	addTranslationJob(word_eol[2], lang, "auto", xchat.get_info("channel"), None, ECHO, True)
 	return xchat.EAT_ALL
-xchat.hook_command("TRSEND", translateAndSay, help="/TRSEND <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
+xchat.hook_command("TRSEND", translateAndSay, help="/TRSEND {dest_lang} {text} - translates the {text} into the {desk_lang} langugage.")
 
 def translate(word, word_eol, userdata):
 	addTranslationJob(word_eol[2], word[1], "auto", xchat.get_info("channel"), word[0].lower())
 	return xchat.EAT_ALL
-xchat.hook_command("TR", translate, help="/TR <dest_lang> <text> - translates the <text> into the <desk_lang> langugage.")
+xchat.hook_command("TR", translate, help="/TR {dest_lang} {text} - translates the {text} into the {desk_lang} langugage.")
 
 def printWatchList(word, word_eol, userdata):
 	xchat.prnt("Printing watch list (nick, channel, src, dest, error count)")
@@ -490,7 +507,7 @@ def printChanWatchList(word, word_eol, userdata):
 		xchat.prnt("- " + user + " " + channel + " " + src + " " + dest)
 
 	return xchat.EAT_ALL
-xchat.hook_command("LSCHAN", printChanWatchList, help = "/LSCHAN - prints out all users on the watch list for automatic translations to the screen locally.")
+xchat.hook_command("LSCHAN", printChanWatchList, help = "/LSCHAN - prints out all channels on the channel watch list for automatic translations to the screen locally.")
 
 def printIgnoreList(word, word_eol, userdata):
 	xchat.prnt("Printing ignore list (nick, channel, src, dest)")
