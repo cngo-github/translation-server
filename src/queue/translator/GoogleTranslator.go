@@ -113,8 +113,9 @@ func RunTranslation(url string, echo bool, request *TranslateJob) error {
 	}
 
 	var txt string
+	log.Println("Capacity:", str(cap(arr)), " Lenth:", str(len(arr)))
 
-	for i := 0; i < cap(arr); i++ {
+	for i := 0; i < len(arr); i++ {
 		arrText := arr[i].([]interface{})
 		txt = txt + arrText[0].(string) + " "
 	}
