@@ -169,11 +169,11 @@ class Translator:
 					dest, src, cnt = WATCHLIST[key]
 					cnt = cnt - 1
 
-					if src == "auto" and ENABLE_DEFAULTLANG:
+					if src == "auto" and ENABLE_UPDATELANG:
 						src = result["Srclang"]
 
 					WATCHLIST[key] = (dest, src, cnt)
-				elif user is not None and user != "" and ENABLE_DEFAULTLANG:
+				elif user is not None and user != "" and ENABLE_UPDATELANG:
 					dest = DEFAULT_LANG
 					src = result["Srclang"]
 					cnt = 0
@@ -190,7 +190,7 @@ class Translator:
 					dest, src, cnt = WATCHLIST[key]
 					cnt = cnt - 1
 
-					if src == "auto" and ENABLE_DEFAULTLANG:
+					if src == "auto" and ENABLE_UPDATELANG:
 						src = result["Srclang"]
 
 					WATCHLIST[key] = (dest, src, cnt)
